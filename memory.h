@@ -13,5 +13,11 @@ class Memory {
             return Data[Address];
         }
 
+        // Operator for writing 1 Byte
+        BYTE& operator[](u32 Address) {
+            // todo :: assert that Addres is < MAX_MEM
+            return Data[Address];
+        }
+
         void Initialize();
 };
