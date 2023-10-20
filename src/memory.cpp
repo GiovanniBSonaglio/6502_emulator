@@ -1,6 +1,6 @@
 #include "memory.h"
 
-void Memory::Initialize(){
+void Memory::Reset(){
     for (u32 i = 0; i < Memory::MAX_MEM; i++)
     {
         Memory::Data[i] = 0;

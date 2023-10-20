@@ -1,6 +1,6 @@
-#ifndef _INCL_DEFINE
-    #include "globals.h"
-#endif
+#include "globals.h"
+
+#pragma once
 
 class Memory {
     public:
@@ -19,5 +19,5 @@ class Memory {
             return Data[Address];
         }
 
-        void Initialize();
+        void Reset();
 };

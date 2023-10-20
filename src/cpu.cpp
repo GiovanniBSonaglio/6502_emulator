@@ -8,7 +8,10 @@ void CPU::Reset(){
     A = X = Y = 0;
 }
 
-void CPU::Execute(u32 Cycles){
+s32 CPU::Execute(u32 Cycles){
+    
+    const s32 CyclesRequested = Cycles;
+
     while (Cycles > 0){
         BYTE Instruction = FetchByte(Cycles);
 
@@ -102,20 +105,22 @@ void CPU::Execute(u32 Cycles){
                 printf("\n Instruction is not handled %d", Instruction);
             } break;
         }
-        printf("\n Cycles: %d", Cycles);
     }
+    
+    const s32 NumCyclesUsed = CyclesRequested - Cycles;
+	return NumCyclesUsed;
 }
 
 BYTE CPU::FetchByte(u32 &Cycles){
-    BYTE Data = CPU_mem[PC];
+    BYTE Data = CPUMem[PC];
     PC++;
     Cycles--;
     return Data;
 }
 
 WORD CPU::FetchWord(u32 &Cycles){
-    BYTE LoByteData = CPU_mem[PC];
-    BYTE HiByteData = CPU_mem[PC+1];
+    BYTE LoByteData = CPUMem[PC];
+    BYTE HiByteData = CPUMem[PC+1];
     PC += 2;
 
     WORD Data = AppendBytes(LoByteData, HiByteData);
@@ -124,14 +129,14 @@ WORD CPU::FetchWord(u32 &Cycles){
 }
 
 BYTE CPU::ReadByte(u32 &Cycles, WORD Addr){
-    BYTE Data = CPU_mem[Addr];
+    BYTE Data = CPUMem[Addr];
     Cycles--;
     return Data;
 }
 
 WORD CPU::ReadWord(u32 &Cycles, WORD Addr){
-    BYTE LoByteData = CPU_mem[Addr];
-    BYTE HiByteData = CPU_mem[Addr+1];
+    BYTE LoByteData = CPUMem[Addr];
+    BYTE HiByteData = CPUMem[Addr+1];
 
     WORD Data = AppendBytes(LoByteData, HiByteData);
     Cycles -= 2;

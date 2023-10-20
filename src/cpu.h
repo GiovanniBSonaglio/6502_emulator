@@ -1,8 +1,7 @@
-#ifndef _INCL_DEFINE
-    #include "globals.h"
-#endif
-
+#include "globals.h"
 #include "memory.h"
+
+#pragma once
 
 class CPU {
     public:
@@ -30,14 +29,14 @@ class CPU {
         StatusFlags Flag;
 
         // Memory Object
-        Memory CPU_mem;
+        Memory CPUMem;
 
         void Reset();
         BYTE FetchByte(u32 &Cycles);
         WORD FetchWord(u32 &Cycles);
         BYTE ReadByte(u32 &Cycles, WORD Addr);
         WORD ReadWord(u32 &Cycles, WORD Addr);
-        void Execute(u32 Cycles);
+        s32 Execute(u32 Cycles);
         WORD AppendBytes(BYTE LoByte, BYTE HiByte);
         void SetZeroAndNegativeFlags( BYTE Register );
         void LoadRegister(u32 &Cycles, WORD Address, BYTE& Register);

@@ -6,7 +6,7 @@
         "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
         "args": [
           "-g",
-          "${fileDirname}\\**.cpp",
+          "${fileDirname}\\..\\src\\**.cpp",
           "-o",
           "${fileDirname}\\${fileBasenameNoExtension}.exe"
         ],
@@ -19,6 +19,7 @@
         "label": "g++ build & run active file",
         "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
         "args": [
+          "-g",
           "${fileDirname}\\**.cpp",
           "-o",
           "${fileDirname}\\${fileBasenameNoExtension}.exe"
