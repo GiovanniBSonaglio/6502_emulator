@@ -16,16 +16,13 @@ class Memory {
         }
 
         // Operator for writing 1 Byte
-        BYTE& operator[](WORD Address) {
+        BYTE& operator[](WORD Address){
             if(Address >= 0x0000 && Address <= 0xFFFF){
                 return ram[Address];
             }
         }
 
         void Initialise(){
-            for (u32 i = 0; i < MAX_MEM; i++)
-            {
-                ram[i] = 0;
-            }
+            for (auto &i : ram) i = 0x00;
         }
 };

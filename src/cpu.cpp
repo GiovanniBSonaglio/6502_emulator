@@ -3,15 +3,14 @@
 
 CPU::CPU(){
     // Initializing lookup table with the default value
-    for (size_t i = 0; i < 255; i++)
-        Lookup[i] = {&CPU::XXX, &CPU::IMP, 2};
+    for (auto &i : Lookup) i = {&CPU::XXX, &CPU::IMP, 2};
 
     // Populating lookup table
-    Lookup[0xA1] = {&CPU::LDA, &CPU::INX, 6};
+    Lookup[0xA1] = {&CPU::LDA, &CPU::IZX, 6};
     Lookup[0xA5] = {&CPU::LDA, &CPU::ZP0, 3};
     Lookup[0xA9] = {&CPU::LDA, &CPU::IMM, 2};
     Lookup[0xAD] = {&CPU::LDA, &CPU::ABS, 4};
-    Lookup[0xB1] = {&CPU::LDA, &CPU::INY, 5};
+    Lookup[0xB1] = {&CPU::LDA, &CPU::IZY, 5};
     Lookup[0xB5] = {&CPU::LDA, &CPU::ZPX, 4};
     Lookup[0xB9] = {&CPU::LDA, &CPU::ABY, 4};
     Lookup[0xBD] = {&CPU::LDA, &CPU::ABX, 4};    
@@ -34,6 +33,11 @@ void CPU::Clock(){
     }
 
 	Cycles--;
+}
+
+void CPU::ExecuteNCycles(BYTE CyclesToRun){
+    for (BYTE i = 0; i < CyclesToRun; i++)
+        Clock();
 }
 
 BYTE CPU::FetchByte(){
@@ -97,7 +101,6 @@ BYTE CPU::IMM(){
 
 BYTE CPU::ZP0(){
     AbsoluteAddr = FetchByte();
-    AbsoluteAddr &= 0x00FF; // Limiting to zero page
     return 0;
 }
 
@@ -134,17 +137,17 @@ BYTE CPU::ABY(){
         return 0;
 }
 
-BYTE CPU::INX(){
+BYTE CPU::IZX(){
     WORD IndirectAddr = FetchByte();
     IndirectAddr += X;
     AbsoluteAddr = ReadWord(IndirectAddr);
     return 0;
 }
 
-BYTE CPU::INY(){
+BYTE CPU::IZY(){
     BYTE IndirectAddr = FetchByte();
     WORD AbsoluteAddrBeforeY = ReadWord(IndirectAddr);
-    WORD AbsoluteAddr = AbsoluteAddrBeforeY + Y;
+    AbsoluteAddr = AbsoluteAddrBeforeY + Y;
 
     // Handling page crossing
     if((AbsoluteAddrBeforeY ^ AbsoluteAddr) >> 8)

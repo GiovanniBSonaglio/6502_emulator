@@ -57,7 +57,8 @@ class CPU {
         // void InterruptRequest();
         // void NonMaskableInterrupt();
         void Clock();
-        
+        void ExecuteNCycles(BYTE CyclesToRun);
+
         BYTE GetFlag(Flags Flag);
 
     private:
@@ -78,7 +79,7 @@ class CPU {
         BYTE ABS();
         BYTE ABX();
         BYTE ABY();
-        BYTE INX();
-        BYTE INY();
+        BYTE IZX();
+        BYTE IZY();
         BYTE IMP();
 };
