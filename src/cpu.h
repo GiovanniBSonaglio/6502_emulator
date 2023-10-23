@@ -1,57 +1,84 @@
+#pragma once
+
+#include <vector>
+#include <string>
+#include <algorithm>
 #include "globals.h"
 #include "memory.h"
 
-#pragma once
-
 class CPU {
     public:
-        WORD PC;        // Program Counter
-        WORD SP;        // Stack Pointer
-        BYTE A, X, Y;   // Registers
-        
-        // Status Flags
-        struct StatusFlags {	
-            BYTE C : 1;	        // 0: Carry Flag	
-            BYTE Z : 1;	        // 1: Zero Flag
-            BYTE I : 1;         // 2: Interrupt disable
-            BYTE D : 1;         // 3: Decimal mode
-            BYTE B : 1;         // 4: Break
-            BYTE Unused : 1;    // 5: Unused
-            BYTE V : 1;         // 6: Overflow
-            BYTE N : 1;         // 7: Negative
-        };
+        CPU();
 
-        // Process status bits
-        static constexpr BYTE
-            NegativeFlagBit = 0b10000000,
-            ZeroBit = 0b00000001;
+        WORD PC;                // Program Counter
+        WORD SP;                // Stack Pointer
+        BYTE A, X, Y, Status;   // Registers
+        u32  Cycles;            // Cycles counter
+        BYTE InstructionAddr;   // Instruction
+        WORD AbsoluteAddr;      // Absolute Address
 
-        StatusFlags Flag;
-
-        // Memory Object
         Memory CPUMem;
 
-        void Reset();
-        BYTE FetchByte(u32 &Cycles);
-        WORD FetchWord(u32 &Cycles);
-        BYTE ReadByte(u32 &Cycles, WORD Addr);
-        WORD ReadWord(u32 &Cycles, WORD Addr);
-        s32 Execute(u32 Cycles);
+        // Status Flags
+        enum Flags {	
+            C = (1 << 0), // Carry Bit
+            Z = (1 << 1), // Zero
+            I = (1 << 2), // Disable Interrupts
+            D = (1 << 3), // Decimal Mode
+            B = (1 << 4), // Break
+            U = (1 << 5), // Unused
+            V = (1 << 6), // Overflow
+            N = (1 << 7), // Negative
+        };
+
+        /********** Lookup table ************/
+        struct INSTRUCTION {
+            BYTE(CPU::*Operate)(void)   = nullptr;
+            BYTE(CPU::*AddrMode)(void)  = nullptr;
+            BYTE Cycles                 = 0;
+        };
+
+        std::vector<INSTRUCTION> Lookup = std::vector<INSTRUCTION>(255); 
+        
+        /*********** Signals ***********/
+        void Reset(){
+            PC = 0xFFFC;
+            SP = 0xFD;
+            Status = 0x00 | U;
+            A = X = Y = 0;
+            Cycles = 0;
+            InstructionAddr = 0x00;
+            CPUMem.Initialise();
+
+            // Reset takes time
+	        Cycles = 8;
+        }
+
+        // void InterruptRequest();
+        // void NonMaskableInterrupt();
+        void Clock();
+        
+        BYTE GetFlag(Flags Flag);
+
+    private:
+        BYTE FetchByte();
+        WORD FetchWord();
+        BYTE ReadByte(WORD Addr);
+        WORD ReadWord(WORD Addr);
         WORD AppendBytes(BYTE LoByte, BYTE HiByte);
-        void SetZeroAndNegativeFlags( BYTE Register );
-        void LoadRegister(u32 &Cycles, WORD Address, BYTE& Register);
 
-        /*********** Start Opcodes ***********/
+        void SetFlag(Flags Flag, bool Value);
+        
+        BYTE LDA();
+        BYTE XXX();
 
-        // LDA
-        static constexpr BYTE 
-            INS_LDA_IM = 0xA9,
-            INS_LDA_ZP = 0xA5,
-            INS_LDA_ZPX = 0xB5,
-            INS_LDA_ABS = 0xAD,
-            INS_LDA_ABSX = 0xBD,
-            INS_LDA_ABSY = 0xB9,
-            INS_LDA_INDX = 0xA1,
-            INS_LDA_INDY = 0xB1;
-        /*********** End Opcodes ***********/
+        BYTE IMM();
+        BYTE ZP0();
+        BYTE ZPX();
+        BYTE ABS();
+        BYTE ABX();
+        BYTE ABY();
+        BYTE INX();
+        BYTE INY();
+        BYTE IMP();
 };

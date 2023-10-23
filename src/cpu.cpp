@@ -1,145 +1,66 @@
 #include "cpu.h"
 #include <cstdio>
 
-void CPU::Reset(){
-    PC = 0XFFFC;
-    SP = 0x0100;
-    Flag.C = Flag.Z = Flag.I = Flag.D = Flag.B = Flag.V = Flag.N = 0;
-    A = X = Y = 0;
+CPU::CPU(){
+    // Initializing lookup table with the default value
+    for (size_t i = 0; i < 255; i++)
+        Lookup[i] = {&CPU::XXX, &CPU::IMP, 2};
+
+    // Populating lookup table
+    Lookup[0xA1] = {&CPU::LDA, &CPU::INX, 6};
+    Lookup[0xA5] = {&CPU::LDA, &CPU::ZP0, 3};
+    Lookup[0xA9] = {&CPU::LDA, &CPU::IMM, 2};
+    Lookup[0xAD] = {&CPU::LDA, &CPU::ABS, 4};
+    Lookup[0xB1] = {&CPU::LDA, &CPU::INY, 5};
+    Lookup[0xB5] = {&CPU::LDA, &CPU::ZPX, 4};
+    Lookup[0xB9] = {&CPU::LDA, &CPU::ABY, 4};
+    Lookup[0xBD] = {&CPU::LDA, &CPU::ABX, 4};    
 }
 
-s32 CPU::Execute(u32 Cycles){
-    
-    const s32 CyclesRequested = Cycles;
+void CPU::Clock(){
+    if(Cycles == 0){
+        InstructionAddr = FetchByte();
 
-    while (Cycles > 0){
-        BYTE Instruction = FetchByte(Cycles);
+        Cycles = Lookup[InstructionAddr].Cycles;
+        
+        // Calling functions and retrieving the number of "extra" cycles
+        BYTE AdditionalCyclesFromAddrMode = (this->*Lookup[InstructionAddr].AddrMode)();
+        BYTE AdditionalCyclesFromOperate = (this->*Lookup[InstructionAddr].Operate)();
 
-        BYTE AddrLSB, AddrMSB, Value;
-        WORD MemAddr;
-
-        switch (Instruction)
-        {
-            // LDA - Immediate
-            case INS_LDA_IM:
-            {
-                A = FetchByte(Cycles);
-                SetZeroAndNegativeFlags(A);
-            } break;
-
-            // LDA - Zero Page
-            case INS_LDA_ZP:
-            {
-                BYTE ZeroPageAddr = FetchByte(Cycles);
-                LoadRegister(Cycles, ZeroPageAddr, A);
-            } break;
-
-            case INS_LDA_ZPX:
-            {
-                BYTE ZeroPageAddr = FetchByte(Cycles);
-                ZeroPageAddr += X;
-                Cycles--;
-                LoadRegister(Cycles, ZeroPageAddr, A);
-            } break;
-
-            // LDA - Absolute
-            case INS_LDA_ABS:
-            {
-                WORD AbsAddr = FetchWord(Cycles);
-                LoadRegister(Cycles, AbsAddr, A);
-            } break;
-
-            case INS_LDA_ABSX:
-            {            
-                WORD AbsAddr = FetchWord( Cycles );
-                WORD AbsAddrX = AbsAddr + X;
-                
-                const bool CrossedPageBoundary = (AbsAddr ^ AbsAddrX) >> 8;
-                if ( CrossedPageBoundary )
-                {
-                    Cycles--;
-                }
-                LoadRegister(Cycles, AbsAddrX, A);
-            } break;
-
-            case INS_LDA_ABSY:
-            {
-                WORD AbsAddr = FetchWord( Cycles );
-                WORD AbsAddrY = AbsAddr + Y;
-
-                const bool CrossedPageBoundary = (AbsAddr ^ AbsAddrY) >> 8;
-                if ( CrossedPageBoundary )
-                {
-                    Cycles--;
-                }
-                LoadRegister(Cycles, AbsAddrY, A);
-            } break;
-
-            case INS_LDA_INDX:
-            {
-                BYTE ZPAddr = FetchByte(Cycles);
-                ZPAddr += X;
-                Cycles--;
-
-                WORD EffectiveAddr = ReadWord(Cycles, ZPAddr);
-
-                LoadRegister(Cycles, EffectiveAddr, A);
-            } break;
-
-            case INS_LDA_INDY:
-            {
-                BYTE ZPAddr = FetchByte(Cycles);
-                WORD EffectiveAddr = ReadWord(Cycles, ZPAddr);
-                WORD EffectiveAddrY = EffectiveAddr + Y;
-
-                const bool CrossedPageBoundary = (EffectiveAddr ^ EffectiveAddrY) >> 8;
-                if ( CrossedPageBoundary )
-                {
-                    Cycles--;
-                }
-                LoadRegister(Cycles, EffectiveAddr, A);
-            } break;
-            
-            default:
-            {
-                printf("\n Instruction is not handled %d", Instruction);
-            } break;
-        }
+        Cycles += (AdditionalCyclesFromAddrMode & AdditionalCyclesFromOperate);
+        
+        // Always set the unused status flag bit to 1
+		SetFlag(U, true);
     }
-    
-    const s32 NumCyclesUsed = CyclesRequested - Cycles;
-	return NumCyclesUsed;
+
+	Cycles--;
 }
 
-BYTE CPU::FetchByte(u32 &Cycles){
+BYTE CPU::FetchByte(){
     BYTE Data = CPUMem[PC];
     PC++;
-    Cycles--;
     return Data;
 }
 
-WORD CPU::FetchWord(u32 &Cycles){
+WORD CPU::FetchWord(){
     BYTE LoByteData = CPUMem[PC];
     BYTE HiByteData = CPUMem[PC+1];
     PC += 2;
 
     WORD Data = AppendBytes(LoByteData, HiByteData);
-    Cycles -= 2;
     return Data;
 }
 
-BYTE CPU::ReadByte(u32 &Cycles, WORD Addr){
+BYTE CPU::ReadByte(WORD Addr){
     BYTE Data = CPUMem[Addr];
-    Cycles--;
     return Data;
 }
 
-WORD CPU::ReadWord(u32 &Cycles, WORD Addr){
+WORD CPU::ReadWord(WORD Addr){
     BYTE LoByteData = CPUMem[Addr];
     BYTE HiByteData = CPUMem[Addr+1];
 
     WORD Data = AppendBytes(LoByteData, HiByteData);
-    Cycles -= 2;
     return Data;
 }
 
@@ -147,12 +68,91 @@ WORD CPU::AppendBytes(BYTE LoByte, BYTE HiByte){
     return LoByte | (HiByte << 8);
 }
 
-void CPU::SetZeroAndNegativeFlags( BYTE Register ){
-    Flag.Z = (Register == 0);
-    Flag.N = (Register & NegativeFlagBit) > 0;
+void CPU::SetFlag(Flags Flag, bool Value){
+	if(Value)
+		Status |= Flag;
+	else
+		Status &= ~Flag;
 }
 
-void CPU::LoadRegister(u32 &Cycles, WORD Address, BYTE& Register){
-    Register = ReadByte( Cycles, Address );
-    SetZeroAndNegativeFlags( Register );
+BYTE CPU::GetFlag(Flags Flag){
+    return ((Status & Flag) > 0) ? 1 : 0;
+}
+
+BYTE CPU::LDA(){
+	A = ReadByte(AbsoluteAddr);
+	SetFlag(Z, A == 0x00);
+	SetFlag(N, A & 0x80);
+	return 1;
+}
+
+BYTE CPU::XXX(){
+	return 0;
+}
+
+BYTE CPU::IMM(){
+    AbsoluteAddr = PC++;
+    return 0;
+}
+
+BYTE CPU::ZP0(){
+    AbsoluteAddr = FetchByte();
+    AbsoluteAddr &= 0x00FF; // Limiting to zero page
+    return 0;
+}
+
+BYTE CPU::ZPX(){
+    AbsoluteAddr = FetchByte() + X;
+    AbsoluteAddr &= 0x00FF; // Limiting to zero page
+    return 0;
+}
+
+BYTE CPU::ABS(){
+    AbsoluteAddr = FetchWord();
+    return 0;
+}
+
+BYTE CPU::ABX(){
+    WORD AbsoluteAddrBeforeX = FetchWord();
+    AbsoluteAddr = AbsoluteAddrBeforeX + X;
+
+    // Handling page crossing
+    if((AbsoluteAddrBeforeX ^ AbsoluteAddr) >> 8)
+		return 1;
+    else
+        return 0;
+}
+
+BYTE CPU::ABY(){
+    WORD AbsoluteAddrBeforeY = FetchWord();
+    AbsoluteAddr = AbsoluteAddrBeforeY + Y;
+
+    // Handling page crossing
+    if((AbsoluteAddrBeforeY ^ AbsoluteAddr) >> 8)
+		return 1;
+    else
+        return 0;
+}
+
+BYTE CPU::INX(){
+    WORD IndirectAddr = FetchByte();
+    IndirectAddr += X;
+    AbsoluteAddr = ReadWord(IndirectAddr);
+    return 0;
+}
+
+BYTE CPU::INY(){
+    BYTE IndirectAddr = FetchByte();
+    WORD AbsoluteAddrBeforeY = ReadWord(IndirectAddr);
+    WORD AbsoluteAddr = AbsoluteAddrBeforeY + Y;
+
+    // Handling page crossing
+    if((AbsoluteAddrBeforeY ^ AbsoluteAddr) >> 8)
+		return 1;
+    else
+        return 0;
+}
+
+BYTE CPU::IMP(){
+    return 0;
 }

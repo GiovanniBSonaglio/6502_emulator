@@ -5,7 +5,6 @@ project( M6502Lib )
 set (M6502_SOURCES
     "cpu.cpp"
     "cpu.h"
-    "memory.cpp"
     "memory.h"
     "main.cpp")
 		
