@@ -71,11 +71,14 @@ class CPU {
         void SetFlag(Flags Flag, bool Value);
         
         BYTE LDA();
+        BYTE LDX();
+        BYTE LDY();
         BYTE XXX();
 
         BYTE IMM();
         BYTE ZP0();
         BYTE ZPX();
+        BYTE ZPY();
         BYTE ABS();
         BYTE ABX();
         BYTE ABY();
