@@ -7,15 +7,11 @@ int main()
     cpu.Reset();    
     
     // Given:
-    cpu.Y = 0x10;
-    cpu.CPUMem[0xFFFC] = 0xB1; // LDA - IZY
-    cpu.CPUMem[0xFFFD] = 0xA4;
-    cpu.CPUMem[0x00A4] = 0x51;
-    cpu.CPUMem[0x00A5] = 0x3F;
-	cpu.CPUMem[0x3F61] = 0x15;
+    cpu.A = 0x80;
+    cpu.CPUMem[0xFFFC] = 0x0A; // ASL - ACC
 
     // When:
-   	cpu.ExecuteNCycles(13);
+   	cpu.ExecuteNCycles(10);
 
     return 0;
 }

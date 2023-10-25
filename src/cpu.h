@@ -66,15 +66,21 @@ class CPU {
         WORD FetchWord();
         BYTE ReadByte(WORD Addr);
         WORD ReadWord(WORD Addr);
+        void WriteByte(WORD Addr, BYTE Value);
+        void WriteWord(WORD Addr, WORD Value);
         WORD AppendBytes(BYTE LoByte, BYTE HiByte);
 
         void SetFlag(Flags Flag, bool Value);
         
+        BYTE ADC();
+        BYTE AND();
+        BYTE ASL();
         BYTE LDA();
         BYTE LDX();
         BYTE LDY();
         BYTE XXX();
 
+        BYTE ACC();
         BYTE IMM();
         BYTE ZP0();
         BYTE ZPX();
